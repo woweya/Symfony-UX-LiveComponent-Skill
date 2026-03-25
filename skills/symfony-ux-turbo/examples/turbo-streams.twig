@@ -1,0 +1,107 @@
+{# ============================================================ #}
+{# Turbo Streams - DOM Manipulation Patterns                    #}
+{# ============================================================ #}
+
+{# === 1. Append New Item === #}
+{# Add a new element to the end of a container #}
+
+<turbo-stream action="append" targets="#comments">
+    <template>
+        <div id="comment_42" class="comment">
+            <strong>John Doe</strong>
+            <p>Great article!</p>
+            <time>Just now</time>
+        </div>
+    </template>
+</turbo-stream>
+
+
+{# === 2. Prepend New Item === #}
+{# Add a new element at the beginning of a container #}
+
+<turbo-stream action="prepend" targets="#notifications">
+    <template>
+        <div id="notification_15" class="notification notification--unread">
+            <p>You have a new follower!</p>
+        </div>
+    </template>
+</turbo-stream>
+
+
+{# === 3. Replace Entire Element === #}
+{# Replace the complete element (including the element itself) #}
+
+<turbo-stream action="replace" targets="#task_7">
+    <template>
+        <div id="task_7" class="task task--completed">
+            <span>✓ Buy groceries</span>
+            <small>Completed at {{ 'now'|date('H:i') }}</small>
+        </div>
+    </template>
+</turbo-stream>
+
+
+{# === 4. Update Inner HTML === #}
+{# Replace only the content inside the element #}
+
+<turbo-stream action="update" targets="#cart-count">
+    <template>
+        <span class="badge">5</span>
+    </template>
+</turbo-stream>
+
+
+{# === 5. Remove Element === #}
+{# Remove an element from the DOM #}
+
+<turbo-stream action="remove" targets="#notification_3"></turbo-stream>
+
+
+{# === 6. Insert Before/After === #}
+{# Insert content before or after a specific element #}
+
+<turbo-stream action="before" targets="#task_5">
+    <template>
+        <div id="task_4" class="task">New task inserted before task 5</div>
+    </template>
+</turbo-stream>
+
+<turbo-stream action="after" targets="#task_5">
+    <template>
+        <div id="task_6" class="task">New task inserted after task 5</div>
+    </template>
+</turbo-stream>
+
+
+{# === 7. Multiple Stream Actions in One Response === #}
+{# You can combine multiple actions in a single response #}
+
+{# templates/comment/stream_create.html.twig #}
+{# Append the new comment AND update the counter #}
+<turbo-stream action="append" targets="#comments">
+    <template>
+        <div id="comment_{{ comment.id }}">
+            <strong>{{ comment.author }}</strong>
+            <p>{{ comment.body }}</p>
+        </div>
+    </template>
+</turbo-stream>
+
+<turbo-stream action="update" targets="#comment-count">
+    <template>{{ total_comments }} comments</template>
+</turbo-stream>
+
+
+{# === 8. Broadcast Listener in Template === #}
+{# Listen for real-time Mercure updates #}
+
+<div id="messages" {{ turbo_stream_listen('App\\Entity\\Message') }}>
+    {% for message in messages %}
+        <div id="message_{{ message.id }}">{{ message.content }}</div>
+    {% endfor %}
+</div>
+
+{# Listen on a custom topic #}
+<div id="chat-room" {{ turbo_stream_listen('chat_room_42') }}>
+    {# Messages will appear here in real-time #}
+</div>
