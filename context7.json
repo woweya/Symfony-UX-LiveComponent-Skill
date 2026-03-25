@@ -1,0 +1,26 @@
+{
+  "$schema": "https://context7.com/schema/context7.json",
+  "projectTitle": "Symfony UX Skills",
+  "description": "Comprehensive AI skills for the Symfony UX ecosystem — Stimulus, Turbo, LiveComponent, Twig Components, Autocomplete, and Icons. Provides instructions, code examples, decision trees, and best practices for building modern interactive Symfony applications.",
+  "folders": [
+    "skills"
+  ],
+  "excludeFolders": [
+    ".claude-plugin",
+    "template"
+  ],
+  "excludeFiles": [
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "rules": [
+    "Use Symfony 7.x conventions and PHP 8.2+ syntax",
+    "Follow Symfony UX official documentation patterns",
+    "Always include {{ attributes }} on the root element of Twig Components and LiveComponents",
+    "Use DefaultActionTrait in all LiveComponents",
+    "Prefer AssetMapper over Webpack Encore for new projects",
+    "Use data-model for two-way binding in LiveComponents",
+    "Use Turbo Frames for scoped navigation, Turbo Streams for targeted DOM updates",
+    "Prefer Stimulus for JS behavior over vanilla JS or jQuery"
+  ]
+}

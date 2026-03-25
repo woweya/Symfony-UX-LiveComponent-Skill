@@ -1,0 +1,92 @@
+{# ============================================================ #}
+{# Turbo Frames - Common Patterns                               #}
+{# ============================================================ #}
+
+{# === 1. Basic Frame Navigation === #}
+{# Only the frame content is swapped when links inside are clicked #}
+
+{# templates/product/index.html.twig #}
+{% extends 'base.html.twig' %}
+
+{% block body %}
+    <h1>Products</h1>
+
+    <turbo-frame id="product_list">
+        <ul>
+            {% for product in products %}
+                <li>
+                    <a href="{{ path('product_show', {id: product.id}) }}">
+                        {{ product.name }}
+                    </a>
+                </li>
+            {% endfor %}
+        </ul>
+        
+        {# Pagination inside the frame - only the list updates #}
+        <nav>
+            <a href="{{ path('product_index', {page: currentPage - 1}) }}">Previous</a>
+            <a href="{{ path('product_index', {page: currentPage + 1}) }}">Next</a>
+        </nav>
+    </turbo-frame>
+    
+    <p>This sidebar content never changes during frame navigation.</p>
+{% endblock %}
+
+
+{# === 2. Lazy Loading Frame === #}
+{# Content is loaded asynchronously when the frame appears #}
+
+<turbo-frame id="dashboard_stats" src="{{ path('dashboard_stats') }}" loading="lazy">
+    <div class="skeleton-loader">Loading statistics...</div>
+</turbo-frame>
+
+
+{# === 3. Frame with Form (Edit in Place) === #}
+
+{# templates/todo/list.html.twig #}
+{% for todo in todos %}
+    <turbo-frame id="todo_{{ todo.id }}">
+        <div class="todo-item">
+            <span>{{ todo.title }}</span>
+            <a href="{{ path('todo_edit', {id: todo.id}) }}">Edit</a>
+        </div>
+    </turbo-frame>
+{% endfor %}
+
+{# templates/todo/edit.html.twig #}
+{# This response swaps only the matching frame #}
+<turbo-frame id="todo_{{ todo.id }}">
+    {{ form_start(form, {action: path('todo_update', {id: todo.id})}) }}
+        {{ form_widget(form.title) }}
+        <button type="submit">Save</button>
+        <a href="{{ path('todo_list') }}">Cancel</a>
+    {{ form_end(form) }}
+</turbo-frame>
+
+
+{# === 4. Breaking Out of Frames === #}
+
+<turbo-frame id="notifications">
+    {% for notification in notifications %}
+        <div>
+            {# This link updates the whole page, not just the frame #}
+            <a href="{{ path('notification_show', {id: notification.id}) }}" 
+               data-turbo-frame="_top">
+                {{ notification.title }}
+            </a>
+        </div>
+    {% endfor %}
+</turbo-frame>
+
+
+{# === 5. Frame Targeting Another Frame === #}
+
+<turbo-frame id="sidebar_nav">
+    {# Clicking updates the "main_content" frame, not this one #}
+    <a href="{{ path('page_about') }}" data-turbo-frame="main_content">About</a>
+    <a href="{{ path('page_contact') }}" data-turbo-frame="main_content">Contact</a>
+</turbo-frame>
+
+<turbo-frame id="main_content">
+    <p>Select a page from the sidebar.</p>
+</turbo-frame>
