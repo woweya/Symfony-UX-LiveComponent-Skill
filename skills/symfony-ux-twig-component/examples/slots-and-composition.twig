@@ -1,0 +1,196 @@
+{# ============================================================ #}
+{# Twig Component Slots and Composition Patterns               #}
+{# ============================================================ #}
+
+
+{# === 1. Named Slots (Blocks) === #}
+
+{# templates/components/Card.html.twig #}
+<div class="card" {{ attributes }}>
+    {% if block('header') is not empty %}
+        <div class="card-header">
+            {% block header %}{% endblock %}
+        </div>
+    {% endif %}
+    
+    <div class="card-body">
+        {% block content %}
+            {# Default content #}
+            <p class="text-muted">No content provided.</p>
+        {% endblock %}
+    </div>
+    
+    {% if block('footer') is not empty %}
+        <div class="card-footer">
+            {% block footer %}{% endblock %}
+        </div>
+    {% endif %}
+</div>
+
+{# Usage: #}
+{#
+<twig:Card class="shadow-sm">
+    <twig:block name="header">
+        <h5>User Profile</h5>
+    </twig:block>
+    
+    <p>Name: {{ user.name }}</p>
+    <p>Email: {{ user.email }}</p>
+    
+    <twig:block name="footer">
+        <button class="btn btn-primary">Edit</button>
+    </twig:block>
+</twig:Card>
+#}
+
+
+{# === 2. Anonymous Component (No PHP Class) === #}
+
+{# templates/components/Badge.html.twig #}
+{% props color = 'gray', size = 'md', pill = false %}
+
+<span class="badge bg-{{ color }} {{ size == 'lg' ? 'fs-6' : '' }} {{ pill ? 'rounded-pill' : '' }}" 
+      {{ attributes }}>
+    {% block content %}{% endblock %}
+</span>
+
+{# Usage: #}
+{# <twig:Badge color="success" :pill="true">Active</twig:Badge> #}
+{# <twig:Badge color="danger" size="lg">Deleted</twig:Badge> #}
+
+
+{# === 3. Composing Components Together === #}
+
+{# templates/components/FormField.html.twig #}
+{% props label, name, type = 'text', required = false, error = null, help = null %}
+
+<div class="mb-3 {{ error ? 'has-error' : '' }}" {{ attributes }}>
+    <label for="{{ name }}" class="form-label">
+        {{ label }}
+        {% if required %}<span class="text-danger">*</span>{% endif %}
+    </label>
+    
+    {% block input %}
+        <input type="{{ type }}" 
+               id="{{ name }}" 
+               name="{{ name }}" 
+               class="form-control {{ error ? 'is-invalid' : '' }}"
+               {{ required ? 'required' : '' }}>
+    {% endblock %}
+    
+    {% if error %}
+        <div class="invalid-feedback d-block">{{ error }}</div>
+    {% endif %}
+    
+    {% if help %}
+        <div class="form-text">{{ help }}</div>
+    {% endif %}
+</div>
+
+{# Usage - Default input: #}
+{#
+<twig:FormField label="Email" name="email" type="email" :required="true" 
+                :error="errors.email ?? null" help="We'll never share your email." />
+#}
+
+{# Usage - Custom input slot: #}
+{#
+<twig:FormField label="Bio" name="bio" :error="errors.bio ?? null">
+    <twig:block name="input">
+        <textarea id="bio" name="bio" class="form-control" rows="4"></textarea>
+    </twig:block>
+</twig:FormField>
+#}
+
+
+{# === 4. Component with Nested Attributes === #}
+
+{# templates/components/Dialog.html.twig #}
+{# Usage: <twig:Dialog class="modal-lg" header:class="bg-primary text-white" body:class="p-4"> #}
+
+<div class="modal" {{ attributes.without('header:*', 'body:*', 'footer:*') }}>
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header" {{ attributes.nested('header') }}>
+                {% block header %}
+                    <h5 class="modal-title">Dialog</h5>
+                {% endblock %}
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" {{ attributes.nested('body') }}>
+                {% block content %}{% endblock %}
+            </div>
+            {% if block('footer') is not empty %}
+                <div class="modal-footer" {{ attributes.nested('footer') }}>
+                    {% block footer %}{% endblock %}
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+
+{# === 5. Recursive/Collection Component === #}
+
+{# templates/components/NavMenu.html.twig #}
+{% props items = [], depth = 0 %}
+
+<ul class="{{ depth == 0 ? 'nav nav-pills' : 'dropdown-menu' }}" {{ attributes }}>
+    {% for item in items %}
+        <li class="nav-item {{ item.children is defined and item.children ? 'dropdown' : '' }}">
+            <a href="{{ item.url }}" 
+               class="{{ depth == 0 ? 'nav-link' : 'dropdown-item' }} {{ item.active ?? false ? 'active' : '' }}">
+                {{ item.label }}
+            </a>
+            {% if item.children is defined and item.children %}
+                {# Recursively render sub-menu #}
+                <twig:NavMenu :items="item.children" :depth="depth + 1" />
+            {% endif %}
+        </li>
+    {% endfor %}
+</ul>
+
+
+{# === 6. Full Page Layout Component === #}
+
+{# templates/components/PageLayout.html.twig #}
+{% props pageTitle, breadcrumbs = [] %}
+
+<div class="container-fluid" {{ attributes }}>
+    {% if breadcrumbs %}
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                {% for crumb in breadcrumbs %}
+                    {% if loop.last %}
+                        <li class="breadcrumb-item active">{{ crumb.label }}</li>
+                    {% else %}
+                        <li class="breadcrumb-item">
+                            <a href="{{ crumb.url }}">{{ crumb.label }}</a>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+            </ol>
+        </nav>
+    {% endif %}
+    
+    <div class="d-flex justify-content-between mb-4">
+        <h1>{{ pageTitle }}</h1>
+        {% block actions %}{% endblock %}
+    </div>
+    
+    {% block content %}{% endblock %}
+</div>
+
+{# Usage: #}
+{#
+<twig:PageLayout 
+    pageTitle="User Management" 
+    :breadcrumbs="[{url: '/', label: 'Home'}, {label: 'Users'}]">
+    
+    <twig:block name="actions">
+        <a href="{{ path('user_new') }}" class="btn btn-primary">Add User</a>
+    </twig:block>
+    
+    <twig:ui:data-table :columns="columns" :rows="users" />
+</twig:PageLayout>
+#}
