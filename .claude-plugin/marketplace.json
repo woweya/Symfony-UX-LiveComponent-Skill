@@ -1,0 +1,50 @@
+{
+  "name": "symfony-ux-skills",
+  "owner": {
+    "name": "woweya",
+    "email": ""
+  },
+  "metadata": {
+    "description": "Symfony UX ecosystem skills for AI coding assistants",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "symfony-ux-skills",
+      "description": "Complete Symfony UX ecosystem skills: Stimulus controllers, Turbo (Drive/Frames/Streams), LiveComponent, Twig Components, Autocomplete, and Icons",
+      "source": "./",
+      "strict": false,
+      "skills": [
+        "./skills/symfony-ux-stimulus",
+        "./skills/symfony-ux-turbo",
+        "./skills/symfony-ux-live-component",
+        "./skills/symfony-ux-twig-component",
+        "./skills/symfony-ux-autocomplete",
+        "./skills/symfony-ux-icons"
+      ]
+    },
+    {
+      "name": "symfony-ux-core",
+      "description": "Core Symfony UX skills: Stimulus, Turbo, and LiveComponent",
+      "source": "./",
+      "strict": false,
+      "skills": [
+        "./skills/symfony-ux-stimulus",
+        "./skills/symfony-ux-turbo",
+        "./skills/symfony-ux-live-component"
+      ]
+    },
+    {
+      "name": "symfony-ux-components",
+      "description": "Symfony UX component skills: Twig Components, LiveComponent, Autocomplete, and Icons",
+      "source": "./",
+      "strict": false,
+      "skills": [
+        "./skills/symfony-ux-twig-component",
+        "./skills/symfony-ux-live-component",
+        "./skills/symfony-ux-autocomplete",
+        "./skills/symfony-ux-icons"
+      ]
+    }
+  ]
+}
