@@ -60,8 +60,6 @@ This repository includes a `context7.json` configuration for integration with [C
 ├── context7.json              # Context7 configuration
 ├── .claude-plugin/
 │   └── marketplace.json       # Claude Code plugin registration
-├── template/
-│   └── SKILL.md               # Template for creating new skills
 └── skills/
     ├── symfony-ux-stimulus/
     │   ├── SKILL.md
@@ -80,21 +78,6 @@ This repository includes a `context7.json` configuration for integration with [C
     │   └── examples/
     └── symfony-ux-icons/
         └── SKILL.md
-```
-
-## Creating Custom Skills
-
-Use the template in `template/SKILL.md` as a starting point:
-
-```markdown
----
-name: my-skill-name
-description: A clear description of what this skill does and when to use it
----
-
-# My Skill Name
-
-[Instructions, examples, decision trees, common pitfalls]
 ```
 
 ## License
