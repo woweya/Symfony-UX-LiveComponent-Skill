@@ -518,6 +518,374 @@ class HeavyReport
 
 ---
 
+## Morphing Control
+
+When a LiveComponent re-renders, Turbo's morphing algorithm intelligently diffs the old and new HTML. You can control this behavior with special attributes.
+
+### `data-live-ignore` — Prevent Element Updates
+
+Elements with `data-live-ignore` are **completely skipped** during re-renders. Use this for elements whose state is managed by JavaScript (e.g., a third-party widget).
+
+```html
+{# This input's value will NOT be reset on re-render #}
+<input name="favorite_color" data-live-ignore>
+
+{# Entire subtree is ignored #}
+<div data-live-ignore>
+    <div id="chart-widget">
+        {# Rendered by Chart.js — don't touch #}
+    </div>
+</div>
+```
+
+### `data-skip-morph` — Skip Morphing, Overwrite Instead
+
+Use `data-skip-morph` when you want the element's inner HTML to be **completely replaced** (not morphed) on re-render. Useful for `<select>` elements or dynamically generated content where morphing produces glitches.
+
+```html
+<select data-skip-morph>
+    <option>Option that gets re-rendered fully, not morphed</option>
+</select>
+```
+
+### `key` Prop — Identifying Components in Lists
+
+When rendering lists of child components, always pass a `key` prop to uniquely identify each component. This prevents component state from mixing up when items are added/removed/reordered.
+
+```twig
+{% for lineItem in invoice.lineItems %}
+    {{ component('InvoiceLineItemForm', {
+        lineItem: lineItem,
+        key: lineItem.id,
+    }) }}
+{% endfor %}
+```
+
+Use a **dynamic key** to force full re-renders when the list length changes:
+
+```twig
+{{ component('InvoiceLineItemForm', {
+    key: 'new_line_item_'~lineItems|length,
+}) }}
+```
+
+### Force Full Child Re-render with Dynamic `id`
+
+To reset all writable LiveProps and force a child component to completely re-render, change its `id`:
+
+```twig
+{{ component('TodoFooter', {
+    count: todos|length,
+    id: 'todo-footer-'~todos|length,
+}) }}
+```
+
+---
+
+## File Uploads
+
+LiveComponent supports file uploads through the `files` modifier on LiveActions.
+
+### Template Setup
+
+```twig
+<div {{ attributes }}>
+    <input type="file" name="my_file" />
+    <input type="file" name="multiple[]" multiple />
+
+    {# Send only file from first input #}
+    <button data-action="live#action"
+            data-live-action-param="files(my_file)|myAction">
+        Upload One
+    </button>
+
+    {# Chain multiple file inputs #}
+    <button data-action="live#action"
+            data-live-action-param="files(my_file)|files(multiple[])|myAction">
+        Upload All Selected
+    </button>
+
+    {# Send ALL pending files #}
+    <button data-action="live#action"
+            data-live-action-param="files|myAction">
+        Upload Everything
+    </button>
+</div>
+```
+
+### Handling Files in PHP
+
+```php
+#[AsLiveComponent]
+class FileUpload
+{
+    use DefaultActionTrait;
+
+    #[LiveAction]
+    public function myAction(Request $request): void
+    {
+        // Single file
+        $file = $request->files->get('my_file');
+
+        // Multiple files
+        $multiple = $request->files->all('multiple');
+
+        // Process files (validate, move, persist, etc.)
+    }
+}
+```
+
+---
+
+## LiveCollectionType — Dynamic Form Collections
+
+`LiveCollectionType` is a special form type that adds/removes collection entries dynamically without a full page reload — powered by LiveComponent.
+
+### Form Type Setup
+
+```php
+use Symfony\UX\LiveComponent\Form\Type\LiveCollectionType;
+
+class BlogPostFormType extends AbstractType
+{
+    public function buildForm(FormBuilderInterface $builder, array $options): void
+    {
+        $builder
+            ->add('title', TextType::class)
+            ->add('comments', LiveCollectionType::class, [
+                'entry_type' => CommentFormType::class,
+                'label' => false,
+                'button_delete_options' => [
+                    'label' => 'X',
+                    'attr' => [
+                        'class' => 'btn btn-outline-danger',
+                    ],
+                ],
+            ])
+        ;
+    }
+
+    public function configureOptions(OptionsResolver $resolver): void
+    {
+        $resolver->setDefaults(['data_class' => BlogPost::class]);
+    }
+}
+```
+
+### Basic Template (Automatic Add/Delete Buttons)
+
+```twig
+<div {{ attributes }}>
+    {{ form(form) }}
+</div>
+```
+
+### Inline/Custom Rendering
+
+```twig
+<div {{ attributes }}>
+    {{ form_start(form) }}
+        {{ form_row(form.title) }}
+
+        <h3>Comments:</h3>
+        {% for key, commentForm in form.comments %}
+            {# Delete button for each row #}
+            {{ form_row(commentForm.vars.button_delete, {
+                label: 'X',
+                attr: { class: 'btn btn-outline-danger' }
+            }) }}
+            {{ form_row(commentForm, { label: false }) }}
+        {% endfor %}
+
+        {# Add button #}
+        {{ form_widget(form.comments.vars.button_add, {
+            label: '+ Add comment',
+            attr: { class: 'btn btn-outline-primary' }
+        }) }}
+
+        {{ form_row(form) }}
+        <button type="submit">Save</button>
+    {{ form_end(form) }}
+</div>
+```
+
+### Controlling Add Button Placement
+
+```twig
+{# Render collection without add button, then place it manually #}
+<tbody>
+    {{ form_row(form.todoItems, { skip_add_button: true }) }}
+</tbody>
+</table>
+
+{{ form_widget(form.todoItems.vars.button_add, {
+    label: '+ Add Item',
+    attr: { class: 'btn btn-outline-primary' }
+}) }}
+```
+
+### Custom Row Theme
+
+```twig
+{# _form_theme.html.twig #}
+{%- block live_collection_entry_row -%}
+    <div class="d-flex gap-2 mb-2">
+        {{ block('form_row') }}
+        {%- if button_delete is defined and not button_delete.rendered -%}
+            {{ form_row(button_delete, {
+                label: 'X',
+                attr: { class: 'btn btn-outline-danger' }
+            }) }}
+        {%- endif -%}
+    </div>
+{%- endblock -%}
+```
+
+---
+
+## Real-Time Validation (without Forms)
+
+Use `ValidatableComponentTrait` with Symfony Validator constraints for real-time validation directly on LiveProps — no Symfony Form required.
+
+```php
+use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\UX\LiveComponent\ValidatableComponentTrait;
+
+#[AsLiveComponent]
+class ContactForm
+{
+    use DefaultActionTrait;
+    use ValidatableComponentTrait;
+
+    #[LiveProp(writable: true)]
+    #[Assert\NotBlank]
+    #[Assert\Length(min: 3, max: 100)]
+    public string $name = '';
+
+    #[LiveProp(writable: true)]
+    #[Assert\NotBlank]
+    #[Assert\Email]
+    public string $email = '';
+
+    #[LiveProp(writable: true)]
+    #[Assert\NotBlank]
+    #[Assert\Length(min: 10)]
+    public string $message = '';
+
+    #[LiveAction]
+    public function submit(): void
+    {
+        $this->validate(); // throws exception if invalid
+
+        // Save, send email, etc.
+    }
+}
+```
+
+### Displaying Validation Errors
+
+```twig
+<div {{ attributes }}>
+    <div>
+        <label>Name</label>
+        <input type="text" data-model="on(blur)|name">
+        {% if _errors.has('name') %}
+            <span class="text-danger">{{ _errors.get('name').message }}</span>
+        {% endif %}
+    </div>
+
+    <div>
+        <label>Email</label>
+        <input type="email" data-model="on(blur)|email">
+        {% if _errors.has('email') %}
+            <span class="text-danger">{{ _errors.get('email').message }}</span>
+        {% endif %}
+    </div>
+
+    <button data-action="live#action" data-live-action-param="submit">
+        Send
+    </button>
+</div>
+```
+
+### Resetting Validation State
+
+```php
+#[LiveAction]
+public function save(): void
+{
+    $this->validate();
+
+    // ...save logic...
+
+    // Reset component to initial state
+    $this->user = new User();
+    $this->agreeToTerms = false;
+    $this->resetValidation();
+}
+```
+
+### Resetting a Form After Save
+
+```php
+#[LiveAction]
+public function save(EntityManagerInterface $em): void
+{
+    $this->submitForm();
+    // ...save logic...
+    $this->resetForm(); // resets to initial form state without redirect
+}
+```
+
+---
+
+## Lazy & Deferred Loading
+
+### Lazy Loading (Viewport-Based)
+
+Component renders an empty div and loads its real content only when scrolled into view:
+
+```twig
+{# Function syntax #}
+{{ component('SomeHeavyComponent', { loading: 'lazy' }) }}
+
+{# HTML syntax #}
+<twig:SomeHeavyComponent loading="lazy" />
+```
+
+### Deferred Loading (After Page Load)
+
+Component renders an empty placeholder immediately, then loads its content via AJAX after the page has rendered:
+
+```twig
+{{ component('SomeHeavyComponent', { loading: 'defer' }) }}
+<twig:SomeHeavyComponent loading="defer" />
+```
+
+---
+
+## URL Query String Binding
+
+Bind LiveProp values to URL query parameters. When the prop changes, the URL updates; when the user navigates back, the prop restores.
+
+```php
+#[AsLiveComponent]
+class SearchModule
+{
+    use DefaultActionTrait;
+
+    #[LiveProp(writable: true, url: true)]
+    public string $query = '';
+
+    #[LiveProp(writable: true, url: true)]
+    public int $page = 1;
+}
+```
+
+The URL will update to `?query=foo&page=2` as the user interacts.
+
+---
+
 ## Component Communication
 
 ### Emitting Events
@@ -577,6 +945,12 @@ Need dynamic behavior?
 - **Don't call `$this->submitForm()` then read form data** — Modify `$this->formValues` array instead
 - **Loading states** — Use `data-loading` attributes for UX feedback during re-renders
 - Multiple `data-model` on the same input are not supported — use modifiers like `debounce()` or `on(change)` together
+- **Missing `key` in lists** — Always pass a `key` prop when rendering child components in loops to prevent state mixups
+- **`data-live-ignore` vs `data-skip-morph`** — `data-live-ignore` keeps the element untouched forever; `data-skip-morph` replaces the innerHTML fully instead of morphing
+- **File uploads require `files` modifier** — Use `data-live-action-param="files|myAction"` or `files(inputName)|myAction`
+- **`resetForm()` vs redirect** — Use `$this->resetForm()` to clear the form without redirecting after save
+- **LiveCollectionType** — Always use `LiveCollectionType::class` (not `CollectionType::class`) for dynamic add/remove in LiveComponents
+- **Validation without forms** — Use `ValidatableComponentTrait` + `$this->validate()` for props-only validation, and `_errors.has('field')` in Twig
 
 ## Reference Files
 
